@@ -10,7 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "node-fetch": "^2.6.1", // Ensure this version or newer (>=2.6.1 if you copied from me)
-    "uuid": "^9.0.0"       // Ensure this version or newer
+    "node-fetch": "^2.6.1", 
+    "uuid": "^9.0.0"      
   }
 }
