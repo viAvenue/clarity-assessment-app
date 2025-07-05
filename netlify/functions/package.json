@@ -1,0 +1,16 @@
+{
+  "name": "netlify-functions",
+  "version": "1.0.0",
+  "description": "Serverless functions for Clarity Triad Assessment",
+  "main": "submit-assessment.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "node-fetch": "^2.6.1", // Ensure this version or newer (>=2.6.1 if you copied from me)
+    "uuid": "^9.0.0"       // Ensure this version or newer
+  }
+}

@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clarity Triad Assessment</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .question-card {
+            transition: all 0.3s ease-in-out;
+        }
+        .radio-label {
+            border: 1px solid #D1D5DB;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+        input[type="radio"]:checked + .radio-label {
+            background-color: #1F2937; /* gray-800 */
+            color: #FFFFFF;
+            border-color: #1F2937;
+        }
+        #message-box {
+            position: fixed;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 1rem 2rem;
+            background-color: #EF4444; /* red-500 */
+            color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: top 0.5s ease-in-out;
+            z-index: 100;
+        }
+        #message-box.success {
+            background-color: #22C55E; /* green-500 */
+        }
+        @media print {
+            body > *:not(#results-section) {
+                display: none !important;
+            }
+            #results-section {
+                display: block !important;
+                margin-top: 0 !important;
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+            }
+            /* Adjustments for print clarity */
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div id="message-box">Please fill out all required fields.</div>
+
+    <div class="container mx-auto max-w-4xl p-4 sm:p-8">
+
+        <section id="assessment-section">
+            <header class="text-center mb-10">
+                <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">Clarity Triad Assessment™</h1>
+                <p class="mt-2 text-lg text-gray-600">A rapid self-diagnostic for your Strategy, Operations & Leadership.</p>
+            </header>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
+                <h2 class="text-xl font-bold mb-3 text-gray-800">How it works</h2>
+                <ol class="list-decimal list-inside space-y-2 text-gray-700">
+                    <li>Answer the 18 statements below as they apply to your business today.</li>
+                    <li>Click "Calculate My Score" to see your results.</li>
+                    <li>Your personalized report will be generated for your records.</li>
+                </ol>
+            </div>
+            <form id="assessment-form">
+                <div id="questions-container" class="space-y-8"></div>
+                <div class="mt-12 text-center">
+                    <button type="submit" id="calculate-btn" class="bg-gray-800 text-white font-bold py-3 px-12 rounded-lg hover:bg-gray-900 transition-colors text-lg shadow-lg">
+                        Calculate My Score
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <section id="results-section" class="hidden mt-16 bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200">
+            </section>
+
+        <section id="thank-you-section" class="hidden mt-16 text-center">
+            <div class="bg-white p-8 sm:p-12 rounded-xl shadow-lg border border-gray-200">
+                <svg class="mx-auto h-16 w-16 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h2 class="mt-6 text-3xl font-bold text-gray-900">Thank You!</h2>
+                <p class="mt-4 text-lg text-gray-600">Your information has been submitted.</p>
+                <p class="mt-2 text-sm text-gray-500">Our team will reach out with your next steps shortly.</p>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- Global State for User Data ---
+            let userData = {}; // Stores contact info like firstname, email from URL params or final form
+            let scoresData = {}; // Stores strategic, operational, leadership, ascentScore
+            let individualQuestionResponses = {}; // Stores 'q1': score, 'q2': score, etc.
+
+            // --- Capture URL Parameters ---
+            const urlParams = new URLSearchParams(window.location.search);
+            userData['firstname'] = urlParams.get('firstname') || '';
+            userData['email'] = urlParams.get('email') || '';
+
+            // --- Page Elements ---
+            const assessmentSection = document.getElementById('assessment-section');
+            const resultsSection = document.getElementById('results-section');
+            const thankYouSection = document.getElementById('thank-you-section');
+            
+            // --- Assessment Logic ---
+            const questions = [
+                { id: 'q1', text: 'Our core customer is crisply defined and written in one sentence.', section: 'strategic' },
+                { id: 'q2', text: 'We can state a compelling value promise that differentiates us from direct competitors.', section: 'strategic' },
+                { id: 'q3', text: 'Annual and 90-day priorities are documented on one page and reviewed at least quarterly.', section: 'strategic' },
+                { id: 'q4', text: '80%+ of employees can explain the company’s purpose, values and 3-year picture.', section: 'strategic' },
+                { id: 'q5', text: 'We track 3-5 leading KPIs that predict revenue or impact.', section: 'strategic' },
+                { id: 'q6', text: 'We abandon (or park) ideas that fall outside our focus within 30 days.', section: 'strategic' },
+                { id: 'q7', text: 'Our 5-8 core processes are documented, simplified and followed by all.', section: 'operational' },
+                { id: 'q8', text: 'A single owner is accountable for each core process and metric.', section: 'operational' },
+                { id: 'q9', text: 'We have a weekly “scorecard” meeting under 60 min that flags off-track numbers.', section: 'operational' },
+                { id: 'q10', text: 'Cycle-time (lead-to-cash or order-to-delivery) is improving quarter over quarter.', section: 'operational' },
+                { id: 'q11', text: 'We know our exact gross-profit per product/service line each month.', section: 'operational' },
+                { id: 'q12', text: 'Customer-experience issues are solved within one week via a defined root-cause routine.', section: 'operational' },
+                { id: 'q13', text: 'Every seat on the Accountability Chart™ is filled by someone who “gets, wants, and has capacity” for that role.', section: 'leadership' },
+                { id: 'q14', text: 'We use core values to hire, review, reward and (when needed) release team members.', section: 'leadership' },
+                { id: 'q15', text: 'Managers coach each direct report at least twice per quarter using agreed KPIs.', section: 'leadership' },
+                { id: 'q16', text: 'Communication rhythm (daily/weekly/quarterly) is consistent; meetings start &amp; finish on time.', section: 'leadership' },
+                { id: 'q17', text: 'Leaders spend ≥ 20% of their week on market-facing or growth activities.', section: 'leadership' },
+                { id: 'q18', text: 'Succession or continuity plans exist for all leadership seats.', section: 'leadership' },
+            ];
+            
+            const questionsContainer = document.getElementById('questions-container');
+            let currentSection = '';
+
+            // Render questions on the page
+            questions.forEach((q, index) => {
+                if (q.section !== currentSection) {
+                    currentSection = q.section;
+                    const sectionTitle = document.createElement('h2');
+                    sectionTitle.className = 'text-2xl font-bold text-gray-800 border-b pb-3 mb-6';
+                    sectionTitle.textContent = `${currentSection.charAt(0).toUpperCase()}${currentSection.slice(1)} Clarity`;
+                    questionsContainer.appendChild(sectionTitle);
+                }
+                const questionEl = document.createElement('div');
+                questionEl.className = 'question-card bg-white p-6 rounded-lg shadow-sm border border-gray-200';
+                questionEl.innerHTML = `<p class="text-lg font-medium text-gray-800 mb-5">${index + 1}. ${q.text}</p><div class="flex flex-wrap items-center justify-center gap-3 sm:gap-4" data-question-id="${q.id}">${[0, 1, 2, 3, 4].map(val => `<div><input type="radio" name="${q.id}" id="${q.id}-${val}" value="${val}" class="sr-only" required><label for="${q.id}-${val}" class="radio-label text-sm sm:text-base">${val}</label></div>`).join('')}<div class="w-full text-xs text-gray-500 flex justify-between mt-1 px-2"><span>Never</span><span>Rarely</span><span>Sometimes</span><span>Often</span><span>Always</span></div></div>`;
+                questionsContainer.appendChild(questionEl);
+            });
+            
+            const assessmentForm = document.getElementById('assessment-form');
+            assessmentForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                calculateAndShowResults();
+            });
+
+            function showMessageBox(message, type = 'error') {
+                const box = document.getElementById('message-box');
+                box.textContent = message;
+                box.className = type === 'success' ? 'success' : '';
+                box.style.top = '20px';
+                setTimeout(() => { box.style.top = '-100px'; }, 3000);
+            }
+            
+            async function sendResultsToHubSpot(payload) {
+                const portalId = 'PASTE_YOUR_PORTAL_ID_HERE';
+                const formGuid = 'PASTE_YOUR_FORM_GUID_HERE';
+
+                if (portalId.startsWith('PASTE_') || formGuid.startsWith('PASTE_')) {
+                    console.warn("HubSpot IDs are not configured. Skipping submission.");
+                    return; // Don't try to send if the URL is not set
+                }
+
+                const hubspotApiUrl = `https://api.hsforms.com/submissions/v3/integration/submit/${portalId}/${formGuid}`;
+                const hubspotPayload = {
+                    fields: Object.keys(payload).map(key => ({ name: key, value: payload[key] }))
+                };
+
+                try {
+                    const response = await fetch(hubspotApiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(hubspotPayload)
+                    });
+                    if (response.ok) {
+                        console.log("Successfully sent data to HubSpot.");
+                        resultsSection.classList.add('hidden');
+                        thankYouSection.classList.remove('hidden');
+                        window.scrollTo(0, 0);
+                    } else {
+                        console.error('Error sending data to HubSpot:', await response.json());
+                        showMessageBox('There was an error submitting your information. Please try again.', 'error');
+                    }
+                } catch (error) {
+                    console.error('Network error sending data to HubSpot:', error);
+                    showMessageBox('Network error. Please check your connection and try again.', 'error');
+                }
+            }
+
+            function calculateAndShowResults() {
+                const calculateBtn = document.getElementById('calculate-btn');
+                calculateBtn.disabled = true;
+                calculateBtn.textContent = 'Calculating...';
+
+                let totalAnswered = 0;
+                scoresData = { strategic: 0, operational: 0, leadership: 0 };
+                individualQuestionResponses = {}; // Reset for each calculation
+
+                questions.forEach(q => {
+                    const selected = assessmentForm.querySelector(`input[name="${q.id}"]:checked`);
+                    if (selected) {
+                        const score = parseInt(selected.value);
+                        scoresData[q.section] += score;
+                        individualQuestionResponses[q.id] = score; // Store individual score
+                        totalAnswered++;
+                    }
+                });
+
+                if (totalAnswered < questions.length) {
+                    showMessageBox('Please answer all 18 questions before calculating.');
+                    calculateBtn.disabled = false;
+                    calculateBtn.textContent = 'Calculate My Score';
+                    return;
+                }
+                
+                const totalScore = scoresData.strategic + scoresData.operational + scoresData.leadership;
+                scoresData.ascentScore = Math.round((totalScore / 72) * 100);
+
+                generateFullReport(scoresData, individualQuestionResponses);
+                assessmentSection.classList.add('hidden');
+                resultsSection.classList.remove('hidden');
+                window.scrollTo(0, 0);
+            }
+
+            function getAscentAltitude(score) {
+                if (score <= 39) return { level: 'Basecamp', reading: 'Vision Drift evident.' };
+                if (score <= 59) return { level: 'Elevation 1', reading: 'Operational Drag emerging.' };
+                if (score <= 79) return { level: 'Elevation 2', reading: 'Leadership Fog lifting.' };
+                return { level: 'Summit Path', reading: 'Strategic Clarity achieved.' };
+            }
+            
+            function getScoreExplanationText(score) {
+                switch(score) {
+                    case 0: return "Never";
+                    case 1: return "Rarely";
+                    case 2: return "Sometimes";
+                    case 3: return "Often";
+                    case 4: return "Always";
+                    default: return "";
+                }
+            }
+
+            function getScoreInterpretation(score) {
+                if (score <= 1) {
+                    return {
+                        level: "Needs Immediate Attention",
+                        color: "text-red-600",
+                        meaning: "This is a critical gap or blind spot. It’s likely holding your business back and may be causing confusion, rework, or missed opportunities.",
+                        action: "Prioritize these areas for immediate improvement. Consider using an Ascent Playbook or seeking outside help to address these issues quickly."
+                    };
+                } else if (score <= 3) {
+                    return {
+                        level: "Functional, but Needs Refinement",
+                        color: "text-yellow-600",
+                        meaning: "You have some structure or process here, but it’s inconsistent, informal, or not producing desired results. There’s risk of slippage as you grow.",
+                        action: "Schedule a focused review in this area. Tighten up documentation, clarify ownership, and ensure regular review and communication."
+                    };
+                } else { // Score is 4
+                    return {
+                        level: "Strong and Scalable",
+                        color: "text-green-600",
+                        meaning: "This area is a strength. You have clear, documented, and consistently followed practices. The team is aligned and performance is high.",
+                        action: "Maintain and leverage this as a foundation for scaling. Share best practices from this area with other parts of the business."
+                    };
+                }
+            }
+
+            function generateFullReport(scores, individualResponses) {
+                const altitude = getAscentAltitude(scores.ascentScore);
+                const pillarScores = [
+                    { name: 'Strategic Clarity', score: scores.strategic, section: 'strategic' },
+                    { name: 'Operational Clarity', score: scores.operational, section: 'operational' },
+                    { name: 'Leadership Clarity', score: scores.leadership, section: 'leadership' },
+                ];
+
+                let detailedQuestionsHTML = '';
+                let currentPillarDisplayed = '';
+                questions.forEach((q, index) => {
+                    if (q.section !== currentPillarDisplayed) {
+                        currentPillarDisplayed = q.section;
+                        const pillarName = pillarScores.find(p => p.section === currentPillarDisplayed).name;
+                        detailedQuestionsHTML += `<h3 class="text-xl font-bold text-gray-800 border-b pb-2 mt-8 mb-4">${pillarName} Details (${scores[currentPillarDisplayed]}/24)</h3>`;
+                    }
+                    const score = individualResponses[q.id];
+                    const explanationText = getScoreExplanationText(score);
+                    const interpretation = getScoreInterpretation(score);
+                    detailedQuestionsHTML += `
+                        <div class="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <p class="font-medium text-gray-800">${index + 1}. ${q.text}</p>
+                            <p class="text-md text-gray-600 mt-2">Your response: <span class="font-semibold">${score} - ${explanationText}</span></p>
+                            <div class="mt-2 pl-4 border-l-4 border-gray-300">
+                                <p class="font-semibold ${interpretation.color}">${interpretation.level}</p>
+                                <p class="text-sm text-gray-600 mt-1"><strong class="font-semibold">Meaning:</strong> ${interpretation.meaning}</p>
+                                <p class="text-sm text-gray-600 mt-1"><strong class="font-semibold">Action:</strong> ${interpretation.action}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                let readinessFormHTML = '';
+                if (scores.ascentScore <= 60) {
+                    readinessFormHTML = `
+                        <div class="no-print text-center pt-8 mt-8 border-t-4 border-blue-500 bg-blue-50 p-6 rounded-lg">
+                            <h3 class="text-2xl font-bold text-gray-900">An Opportunity for Growth</h3>
+                            <p class="mt-2 text-gray-700 max-w-2xl mx-auto">Your Ascent Score shows your business is at a critical elevation point—clarity and focus are needed to break through to the next level. Now is the time to address what’s holding you back and set a clear path forward.</p>
+                            <p class="mt-4 font-semibold text-gray-800">If you’re ready to take action and accelerate your growth, complete the readiness form below and our team will reach out with your next steps.</p>
+                            <form id="readiness-form" class="mt-6 space-y-6 max-w-lg mx-auto">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label for="readiness-firstname" class="block text-sm font-medium text-gray-700 text-left">First Name</label>
+                                        <input type="text" id="readiness-firstname" value="${userData.firstname}" required class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-gray-800 focus:border-gray-800">
+                                    </div>
+                                    <div>
+                                        <label for="readiness-lastname" class="block text-sm font-medium text-gray-700 text-left">Last Name</label>
+                                        <input type="text" id="readiness-lastname" required class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-gray-800 focus:border-gray-800">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="readiness-email" class="block text-sm font-medium text-gray-700 text-left">Contact Email</label>
+                                    <input type="email" id="readiness-email" value="${userData.email}" required class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-gray-800 focus:border-gray-800">
+                                </div>
+                                <div>
+                                    <label for="readiness-company" class="block text-sm font-medium text-gray-700 text-left">Company</label>
+                                    <input type="text" id="readiness-company" required class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-gray-800 focus:border-gray-800">
+                                </div>
+                                <div>
+                                    <label for="readiness-website" class="block text-sm font-medium text-gray-700 text-left">Website</label>
+                                    <input type="url" id="readiness-website" placeholder="https://example.com" required class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-gray-800 focus:border-gray-800">
+                                </div>
+                                <div>
+                                    <label for="readiness-linkedin" class="block text-sm font-medium text-gray-700 text-left">LinkedIn Profile (Optional)</label>
+                                    <input type="url" id="readiness-linkedin" placeholder="https://linkedin.com/in/yourprofile" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-gray-800 focus:border-gray-800">
+                                </div>
+                                <div class="text-center">
+                                    <button type="submit" id="submit-readiness-btn" class="bg-blue-600 text-white font-bold py-3 px-12 rounded-lg hover:bg-blue-700 transition-colors text-lg shadow-lg">
+                                        Submit Readiness Form
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    `;
+                }
+
+                const resultsHTML = `
+                    <div class="text-center border-b pb-8 mb-8">
+                        <h2 class="text-3xl font-bold text-gray-900">Your Clarity Triad Report</h2>
+                        <p class="mt-2 text-lg text-gray-600">Here's a detailed breakdown of your assessment results.</p>
+                        
+                        <div class="mt-6 bg-gray-50 rounded-lg p-6">
+                            <p class="text-lg font-semibold text-gray-700">Your Ascent Score is:</p>
+                            <p class="text-7xl font-bold my-1 text-gray-800">${scores.ascentScore}</p>
+                            <p class="text-xl font-semibold ${altitude.level === 'Basecamp' ? 'text-red-600' : altitude.level === 'Elevation 1' ? 'text-yellow-600' : 'text-green-600'}">${altitude.level}: <span class="text-gray-600 font-normal">${altitude.reading}</span></p>
+                        </div>
+
+                        <div class="mt-8 grid md:grid-cols-3 gap-4">
+                            ${pillarScores.map(p => `
+                                <div class="bg-white p-4 rounded-lg border">
+                                    <h3 class="text-md font-semibold text-gray-700">${p.name}</h3>
+                                    <p class="text-4xl font-bold text-gray-800 mt-1">${p.score}<span class="text-lg font-normal text-gray-500">/24</span></p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="mt-8">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-4">Detailed Breakdown & Interpretation</h2>
+                        ${detailedQuestionsHTML}
+                    </div>
+
+                    <div class="no-print text-center pt-8 border-t mt-8">
+                        <p class="text-lg text-gray-700 mb-4">For your records, you can print this report or save it as a PDF.</p>
+                        <button onclick="window.print()" class="bg-gray-800 text-white font-bold py-3 px-12 rounded-lg hover:bg-gray-900 transition-colors text-lg shadow-lg">
+                            Print This Report
+                        </button>
+                    </div>
+
+                    ${readinessFormHTML}
+                `;
+                resultsSection.innerHTML = resultsHTML;
+
+                if (scores.ascentScore <= 60) {
+                    document.getElementById('readiness-form').addEventListener('submit', async function(e) {
+                        e.preventDefault();
+                        const submitBtn = document.getElementById('submit-readiness-btn');
+                        submitBtn.disabled = true;
+                        submitBtn.textContent = 'Submitting...';
+
+                        const readinessForm = e.target;
+                        const finalPayload = {
+                            firstname: readinessForm.querySelector('#readiness-firstname').value,
+                            lastname: readinessForm.querySelector('#readiness-lastname').value,
+                            email: readinessForm.querySelector('#readiness-email').value,
+                            company: readinessForm.querySelector('#readiness-company').value,
+                            company_website: readinessForm.querySelector('#readiness-website').value,
+                            linkedin_profile: readinessForm.querySelector('#readiness-linkedin').value,
+                            ascent_score: scoresData.ascentScore,
+                            strategic_score: scoresData.strategic,
+                            operational_score: scoresData.operational,
+                            leadership_score: scoresData.leadership,
+                        };
+
+                        await sendResultsToHubSpot(finalPayload);
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Submit Readiness Form';
+                    });
+                }
+            }
+        });
+    </script>
+</body>
+</html>
