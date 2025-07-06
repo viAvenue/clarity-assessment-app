@@ -148,7 +148,7 @@
             // --- Page Elements ---
             const assessmentSection = document.getElementById('assessment-section');
             const resultsSection = document.getElementById('results-section');
-            const thankYouSection = document.getElementById('thank-you-section');
+            const thankYouSection = document.getElementById('thank-ou-section');
             
             // --- Assessment Logic ---
             const questions = [
@@ -205,12 +205,14 @@
             }
             
             async function sendResultsToHubSpot(payload) {
-                const portalId = '243187425';
-                const formGuid = '1291f298-7513-4822-857b-6633f46699d8';
+                // IMPORTANT: Replace these with your ACTUAL HubSpot Portal ID and Form GUID from your HubSpot embed code.
+                // These are for the client-side form submission.
+                const portalId = '243187425'; // Replace with your actual HubSpot Portal ID
+                const formGuid = '1291f298-7513-4822-857b-6633f46699d8'; // Replace with your actual HubSpot Form GUID
 
                 if (portalId.startsWith('PASTE_') || formGuid.startsWith('PASTE_')) {
-                    console.warn("HubSpot IDs are not configured. Skipping submission.");
-                    return; // Don't try to send if the URL is not set
+                    console.warn("HubSpot IDs are not configured in index.html. Skipping client-side submission.");
+                    return; // Don't try to send if the IDs are placeholders
                 }
 
                 const hubspotApiUrl = `https://api.hsforms.com/submissions/v3/integration/submit/${portalId}/${formGuid}`;
@@ -421,7 +423,7 @@
 
                     <div class="no-print text-center pt-8 border-t mt-8">
                         <p class="text-lg text-gray-700 mb-4">For your records, you can print this report or save it as a PDF.</p>
-                        <button onclick="window.print()" class="bg-gray-800 text-white font-bold py-3 px-12 rounded-lg hover:bg-gray-900 transition-colors text-lg shadow-lg">
+                        <button type="button" id="print-report-btn" class="bg-gray-800 text-white font-bold py-3 px-12 rounded-lg hover:bg-gray-900 transition-colors text-lg shadow-lg">
                             Print This Report
                         </button>
                     </div>
@@ -429,6 +431,14 @@
                     ${readinessFormHTML}
                 `;
                 resultsSection.innerHTML = resultsHTML;
+
+                // Attach event listener for the print button AFTER it's in the DOM
+                document.getElementById('print-report-btn').addEventListener('click', function() {
+                    // Small delay to ensure browser renders dynamic content before printing
+                    setTimeout(() => {
+                        window.print();
+                    }, 50); 
+                });
 
                 if (scores.ascentScore <= 60) {
                     document.getElementById('readiness-form').addEventListener('submit', async function(e) {
@@ -451,6 +461,7 @@
                             leadership_score: scoresData.leadership,
                         };
 
+                        // This calls the sendResultsToHubSpot function which now has your actual IDs
                         await sendResultsToHubSpot(finalPayload);
                         submitBtn.disabled = false;
                         submitBtn.textContent = 'Submit Readiness Form';
