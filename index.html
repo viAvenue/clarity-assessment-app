@@ -200,45 +200,23 @@
                 setTimeout(() => { box.style.top = '-100px'; }, 3000);
             }
             
+            // Reverted to calling the Netlify serverless function directly
             async function submitReadinessFormToNetlify(payload) {
-                // This function now uses Netlify's built-in form handling, as per your previous working setup.
-                // It requires data-netlify="true" on the form tag and a 'form-name' field.
-                const netlifyFormName = "readiness_form"; // Must match the 'name' attribute of your form in Netlify
-
-                const formData = new FormData();
-                // Append all payload properties to formData
-                for (const key in payload) {
-                    if (payload.hasOwnProperty(key)) {
-                        // For non-string/number values (like objects for individual_scores), stringify them
-                        if (typeof payload[key] === 'object' && payload[key] !== null) {
-                            formData.append(key, JSON.stringify(payload[key]));
-                        } else {
-                            formData.append(key, payload[key]);
-                        }
-                    }
-                }
-                formData.append('form-name', netlifyFormName); // Crucial for Netlify to identify the form
-
                 try {
-                    // Submit to the current page path; Netlify's build process will capture it.
-                    const response = await fetch(window.location.pathname, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                        body: new URLSearchParams(formData).toString()
+                    const response = await fetch('/.netlify/functions/submit-assessment', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
                     });
 
-                    // For Netlify's built-in forms, 'response.ok' from fetch might always be true client-side
-                    // as the browser handles the redirect/submission. Success/failure is typically
-                    // indicated by Netlify's backend or a redirect to a thank-you page.
-                    if (response.ok) { 
-                        console.log("Form submission initiated via Netlify's built-in handling. Netlify will process.");
+                    if (response.ok) {
+                        console.log("Form submitted successfully to Netlify Function.");
                         resultsSection.classList.add('hidden');
                         thankYouSection.classList.remove('hidden');
                         window.scrollTo(0, 0);
                     } else {
-                        // This else block might not be reliably hit for Netlify built-in forms
-                        const errorText = await response.text(); 
-                        console.error('Error submitting form to Netlify:', response.status, response.statusText, errorText);
+                        const errorData = await response.json();
+                        console.error('Error submitting form:', response.status, response.statusText, errorData);
                         showMessageBox('There was an error submitting your information. Please try again. (Check console for details)', 'error');
                     }
                 } catch (error) {
@@ -365,7 +343,7 @@
                             <h3 class="text-2xl font-bold text-gray-900">An Opportunity for Growth</h3>
                             <p class="mt-2 text-gray-700 max-w-2xl mx-auto">Your Ascent Score shows your business is at a critical elevation point—clarity and focus are needed to break through to the next level. Now is the time to address what’s holding you back and set a clear path forward.</p>
                             <p class="mt-4 font-semibold text-gray-800">If you’re ready to take action and accelerate your growth, complete the readiness form below and our team will reach out with your next steps.</p>
-                            <form name="readiness_form" method="POST" id="readiness-form" data-netlify="true" class="mt-6 space-y-6 max-w-lg mx-auto"> <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <form name="readiness_form" method="POST" id="readiness-form" class="mt-6 space-y-6 max-w-lg mx-auto"> <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <label for="readiness-firstname" class="block text-sm font-medium text-gray-700 text-left">First Name</label>
                                         <input type="text" id="readiness-firstname" name="firstname" value="${userData.firstname}" required class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-gray-800 focus:border-gray-800">
@@ -465,8 +443,7 @@
                             strategic_score: scoresData.strategic,
                             operational_score: scoresData.operational,
                             leadership_score: scoresData.leadership,
-                            // Pass individual question scores - will be stringified for form submission
-                            individual_scores: individualQuestionResponses 
+                            individual_scores: individualQuestionResponses // Passed as an object for the serverless function
                         };
 
                         await submitReadinessFormToNetlify(finalPayload);
