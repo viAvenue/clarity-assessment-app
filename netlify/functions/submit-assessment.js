@@ -1,7 +1,7 @@
 // netlify/functions/submit-assessment.js
 
-const fetch = require('node-fetch'); // Required for making HTTP requests
-const { v4: uuidv4 } = require('uuid'); // For generating unique IDs
+const fetch = require('node-fetch');
+const { v4: uuidv4 } = require('uuid');
 
 exports.handler = async (event, context) => {
     if (event.httpMethod !== 'POST') {
@@ -22,19 +22,17 @@ exports.handler = async (event, context) => {
             strategic_score,
             operational_score,
             leadership_score,
-            individual_scores // This is an object like {q1: 3, q2: 4, ...}
+            individual_scores
         } = payload;
 
-        // Although not used for Google Sheet anymore, submissionId and timestamp can be useful for other logs or future integrations
         const submissionId = uuidv4();
         const timestamp = new Date().toISOString(); 
 
         // 1. Send data to HubSpot
-        const hubspotApiKey = process.env.HUBSPOT_API_KEY;
-        const hubspotPortalId = process.env.HUBSPOT_PORTAL_ID; // Note: HubSpot API Key is generally sufficient for modern APIs
+        const hubspotAccessToken = process.env.HUBSPOT_ACCESS_TOKEN; // <<< UPDATED variable name >>>
 
-        if (!hubspotApiKey || hubspotApiKey.includes('YOUR_HUBSPOT_API_KEY')) {
-            console.warn("HubSpot API Key not configured. Skipping HubSpot submission.");
+        if (!hubspotAccessToken) { // Simplified check for presence
+            console.warn("HubSpot Access Token not configured. Skipping HubSpot submission.");
         } else {
             const hubspotUrl = `https://api.hubapi.com/crm/v3/objects/contacts`;
             const hsPayload = {
@@ -48,9 +46,7 @@ exports.handler = async (event, context) => {
                     strategic_score: strategic_score,
                     operational_score: operational_score,
                     leadership_score: leadership_score,
-                    // === UPDATED: Using 'individual_assessment_scores' as the internal name ===
                     'individual_assessment_scores': JSON.stringify(individual_scores),
-                    // =========================================================================
                 }
             };
 
@@ -59,7 +55,7 @@ exports.handler = async (event, context) => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${hubspotApiKey}`
+                        'Authorization': `Bearer ${hubspotAccessToken}` // <<< UPDATED Authorization Header >>>
                     },
                     body: JSON.stringify(hsPayload)
                 });
@@ -93,8 +89,6 @@ exports.handler = async (event, context) => {
                     strategic_score: strategic_score,
                     operational_score: operational_score,
                     leadership_score: leadership_score,
-                    // Optional: If ConvertKit also needs individual scores, you could add them here
-                    // 'individual_scores_json': JSON.stringify(individual_scores)
                 },
                 tags: [convertKitTagId]
             };
@@ -112,7 +106,7 @@ exports.handler = async (event, context) => {
             console.log('Data sent to ConvertKit successfully.');
         }
 
-        // Return success response to the client (your index.html)
+        // Return success response to the client
         return {
             statusCode: 200,
             body: JSON.stringify({ message: 'Assessment data submitted successfully!' }),
