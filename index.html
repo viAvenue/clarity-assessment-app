@@ -207,10 +207,8 @@
             async function submitReadinessFormToNetlify(payload) {
                 const netlifyFormName = "readiness_form"; // This should match the 'name' attribute of your form in Netlify
 
-                // Netlify Forms requires a specific payload format:
-                // It expects form fields directly as key-value pairs, with keys matching the 'name' attributes
-                // of your form inputs. Ensure the 'name' attributes in your HTML form match these keys.
                 const formData = new FormData();
+                formData.append('form-name', netlifyFormName); // Crucial for Netlify to identify the form
                 for (const key in payload) {
                     formData.append(key, payload[key]);
                 }
@@ -218,8 +216,8 @@
                 try {
                     const response = await fetch("/", { // Submit to the current page for Netlify Forms
                         method: "POST",
-                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                        body: new URLSearchParams(formData).toString() // Netlify expects URL-encoded
+                        headers: { "Content-Type": "application/x-www-form-urlencoded" }, // Netlify expects URL-encoded
+                        body: new URLSearchParams(formData).toString() 
                     });
 
                     if (response.ok) {
@@ -228,7 +226,9 @@
                         thankYouSection.classList.remove('hidden');
                         window.scrollTo(0, 0);
                     } else {
-                        console.error('Error submitting data to Netlify Form:', response.statusText);
+                        // Log more details from the response if possible
+                        const errorText = await response.text(); 
+                        console.error('Error submitting data to Netlify Form:', response.status, response.statusText, errorText);
                         showMessageBox('There was an error submitting your information. Please try again.', 'error');
                     }
                 } catch (error) {
