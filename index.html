@@ -205,34 +205,28 @@
             }
             
             async function submitReadinessFormToNetlify(payload) {
-                const netlifyFormName = "readiness_form"; // This should match the 'name' attribute of your form in Netlify
-
-                const formData = new FormData();
-                formData.append('form-name', netlifyFormName); // Crucial for Netlify to identify the form
-                for (const key in payload) {
-                    formData.append(key, payload[key]);
-                }
-
+                // IMPORTANT: This function now sends data to the Netlify Function 'submit-assessment.js'
+                // It is NOT using Netlify's built-in form handling which requires data-netlify="true" and form-name field.
+                
                 try {
-                    const response = await fetch("/", { // Submit to the current page for Netlify Forms
+                    const response = await fetch("/.netlify/functions/submit-assessment", {
                         method: "POST",
-                        headers: { "Content-Type": "application/x-www-form-urlencoded" }, // Netlify expects URL-encoded
-                        body: new URLSearchParams(formData).toString() 
+                        headers: { "Content-Type": "application/json" }, // Send as JSON
+                        body: JSON.stringify(payload) // Stringify the payload to JSON
                     });
 
                     if (response.ok) {
-                        console.log("Successfully submitted data to Netlify Form.");
+                        console.log("Successfully submitted data to Netlify Function.");
                         resultsSection.classList.add('hidden');
                         thankYouSection.classList.remove('hidden');
                         window.scrollTo(0, 0);
                     } else {
-                        // Log more details from the response if possible
                         const errorText = await response.text(); 
-                        console.error('Error submitting data to Netlify Form:', response.status, response.statusText, errorText);
-                        showMessageBox('There was an error submitting your information. Please try again.', 'error');
+                        console.error('Error submitting data to Netlify Function:', response.status, response.statusText, errorText);
+                        showMessageBox('There was an error submitting your information. Please try again. Check console for details.', 'error');
                     }
                 } catch (error) {
-                    console.error('Network error submitting data to Netlify Form:', error);
+                    console.error('Network error submitting data to Netlify Function:', error);
                     showMessageBox('Network error. Please check your connection and try again.', 'error');
                 }
             }
@@ -355,7 +349,7 @@
                             <h3 class="text-2xl font-bold text-gray-900">An Opportunity for Growth</h3>
                             <p class="mt-2 text-gray-700 max-w-2xl mx-auto">Your Ascent Score shows your business is at a critical elevation point—clarity and focus are needed to break through to the next level. Now is the time to address what’s holding you back and set a clear path forward.</p>
                             <p class="mt-4 font-semibold text-gray-800">If you’re ready to take action and accelerate your growth, complete the readiness form below and our team will reach out with your next steps.</p>
-                            <form name="readiness_form" method="POST" data-netlify="true" id="readiness-form" class="mt-6 space-y-6 max-w-lg mx-auto">
+                            <form name="readiness_form" method="POST" id="readiness-form" class="mt-6 space-y-6 max-w-lg mx-auto">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <label for="readiness-firstname" class="block text-sm font-medium text-gray-700 text-left">First Name</label>
@@ -456,9 +450,10 @@
                             strategic_score: scoresData.strategic,
                             operational_score: scoresData.operational,
                             leadership_score: scoresData.leadership,
+                            // Ensure submit-assessment.js can handle these if needed
+                            individual_scores: individualQuestionResponses // Pass individual question scores
                         };
 
-                        // This calls the submitReadinessFormToNetlify function
                         await submitReadinessFormToNetlify(finalPayload);
                         submitBtn.disabled = false;
                         submitBtn.textContent = 'Submit Readiness Form';
