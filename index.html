@@ -148,8 +148,8 @@
             // --- Page Elements ---
             const assessmentSection = document.getElementById('assessment-section');
             const resultsSection = document.getElementById('results-section');
-            const thankYouSection = document.getElementById('thank-ou-section');
-            
+            const thankYouSection = document.getElementById('thank-you-section'); // Corrected typo here
+
             // --- Assessment Logic ---
             const questions = [
                 { id: 'q1', text: 'Our core customer is crisply defined and written in one sentence.', section: 'strategic' },
@@ -171,7 +171,7 @@
                 { id: 'q17', text: 'Leaders spend ≥ 20% of their week on market-facing or growth activities.', section: 'leadership' },
                 { id: 'q18', text: 'Succession or continuity plans exist for all leadership seats.', section: 'leadership' },
             ];
-            
+
             const questionsContainer = document.getElementById('questions-container');
             let currentSection = '';
 
@@ -189,7 +189,7 @@
                 questionEl.innerHTML = `<p class="text-lg font-medium text-gray-800 mb-5">${index + 1}. ${q.text}</p><div class="flex flex-wrap items-center justify-center gap-3 sm:gap-4" data-question-id="${q.id}">${[0, 1, 2, 3, 4].map(val => `<div><input type="radio" name="${q.id}" id="${q.id}-${val}" value="${val}" class="sr-only" required><label for="${q.id}-${val}" class="radio-label text-sm sm:text-base">${val}</label></div>`).join('')}<div class="w-full text-xs text-gray-500 flex justify-between mt-1 px-2"><span>Never</span><span>Rarely</span><span>Sometimes</span><span>Often</span><span>Always</span></div></div>`;
                 questionsContainer.appendChild(questionEl);
             });
-            
+
             const assessmentForm = document.getElementById('assessment-form');
             assessmentForm.addEventListener('submit', function(e) {
                 e.preventDefault();
@@ -203,43 +203,36 @@
                 box.style.top = '20px';
                 setTimeout(() => { box.style.top = '-100px'; }, 3000);
             }
-            
-            async function sendResultsToHubSpot(payload) {
-                // IMPORTANT: Replace these with your ACTUAL HubSpot Portal ID and Form GUID from your HubSpot embed code.
-                // These are for the client-side form submission.
-                const portalId = '243187425'; // Replace with your actual HubSpot Portal ID
-                const formGuid = '1291f298-7513-4822-857b-6633f46699d8'; // Replace with your actual HubSpot Form GUID
 
-                if (portalId.startsWith('PASTE_') || formGuid.startsWith('PASTE_')) {
-                    console.warn("HubSpot IDs are not configured in index.html. Skipping client-side submission.");
-                    return; // Don't try to send if the IDs are placeholders
-                }
-
-                const hubspotApiUrl = `https://api.hsforms.com/submissions/v3/integration/submit/${portalId}/${formGuid}`;
-                const hubspotPayload = {
-                    fields: Object.keys(payload).map(key => ({ name: key, value: payload[key] }))
-                };
+            // NEW FUNCTION: This function will send data to the Netlify serverless function
+            async function submitReadinessFormToNetlify(payload) {
+                const netlifyFunctionUrl = '/.netlify/functions/submit-assessment'; // Path to your Netlify function
 
                 try {
-                    const response = await fetch(hubspotApiUrl, {
+                    const response = await fetch(netlifyFunctionUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(hubspotPayload)
+                        body: JSON.stringify(payload)
                     });
+
                     if (response.ok) {
-                        console.log("Successfully sent data to HubSpot.");
+                        console.log("Successfully submitted data via Netlify function.");
                         resultsSection.classList.add('hidden');
                         thankYouSection.classList.remove('hidden');
                         window.scrollTo(0, 0);
+                        showMessageBox('Your information has been submitted successfully!', 'success');
                     } else {
-                        console.error('Error sending data to HubSpot:', await response.json());
-                        showMessageBox('There was an error submitting your information. Please try again.', 'error');
+                        const errorData = await response.json();
+                        console.error('Error from Netlify function:', errorData);
+                        showMessageBox(`Submission failed: ${errorData.details || 'Please try again.'}`, 'error');
                     }
                 } catch (error) {
-                    console.error('Network error sending data to HubSpot:', error);
+                    console.error('Network error submitting to Netlify function:', error);
                     showMessageBox('Network error. Please check your connection and try again.', 'error');
                 }
             }
+
+            // The 'sendResultsToHubSpot' function has been removed as per your request.
 
             function calculateAndShowResults() {
                 const calculateBtn = document.getElementById('calculate-btn');
@@ -266,7 +259,7 @@
                     calculateBtn.textContent = 'Calculate My Score';
                     return;
                 }
-                
+
                 const totalScore = scoresData.strategic + scoresData.operational + scoresData.leadership;
                 scoresData.ascentScore = Math.round((totalScore / 72) * 100);
 
@@ -282,7 +275,7 @@
                 if (score <= 79) return { level: 'Elevation 2', reading: 'Leadership Fog lifting.' };
                 return { level: 'Summit Path', reading: 'Strategic Clarity achieved.' };
             }
-            
+
             function getScoreExplanationText(score) {
                 switch(score) {
                     case 0: return "Never";
@@ -399,7 +392,7 @@
                     <div class="text-center border-b pb-8 mb-8">
                         <h2 class="text-3xl font-bold text-gray-900">Your Clarity Triad Report</h2>
                         <p class="mt-2 text-lg text-gray-600">Here's a detailed breakdown of your assessment results.</p>
-                        
+
                         <div class="mt-6 bg-gray-50 rounded-lg p-6">
                             <p class="text-lg font-semibold text-gray-700">Your Ascent Score is:</p>
                             <p class="text-7xl font-bold my-1 text-gray-800">${scores.ascentScore}</p>
@@ -434,10 +427,10 @@
 
                 // Attach event listener for the print button AFTER it's in the DOM
                 document.getElementById('print-report-btn').addEventListener('click', function() {
-                    // Small delay to ensure browser renders dynamic content before printing
+                    // Increased delay to ensure browser renders dynamic content before printing
                     setTimeout(() => {
                         window.print();
-                    }, 50); 
+                    }, 500); // Increased from 50ms to 500ms
                 });
 
                 if (scores.ascentScore <= 60) {
@@ -459,10 +452,11 @@
                             strategic_score: scoresData.strategic,
                             operational_score: scoresData.operational,
                             leadership_score: scoresData.leadership,
+                            individual_scores: individualQuestionResponses // Pass individual scores to Netlify function
                         };
 
-                        // This calls the sendResultsToHubSpot function which now has your actual IDs
-                        await sendResultsToHubSpot(finalPayload);
+                        // Call the new function to submit via Netlify
+                        await submitReadinessFormToNetlify(finalPayload);
                         submitBtn.disabled = false;
                         submitBtn.textContent = 'Submit Readiness Form';
                     });
