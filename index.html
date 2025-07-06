@@ -8,59 +8,85 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
+ <style>
+    body {
+        font-family: 'Inter', sans-serif;
+    }
+    .question-card {
+        transition: all 0.3s ease-in-out;
+    }
+    .radio-label {
+        border: 1px solid #D1D5DB;
+        padding: 0.5rem 1rem;
+        border-radius: 9999px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-weight: 500;
+    }
+    input[type="radio"]:checked + .radio-label {
+        background-color: #1F2937; /* gray-800 */
+        color: #FFFFFF;
+        border-color: #1F2937;
+    }
+    #message-box {
+        position: fixed;
+        top: -100px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 1rem 2rem;
+        background-color: #EF4444; /* red-500 */
+        color: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: top 0.5s ease-in-out;
+        z-index: 100;
+    }
+    #message-box.success {
+        background-color: #22C55E; /* green-500 */
+    }
+    @media print {
+        /* Hide everything that should not be printed */
+        body > *:not(#results-section) {
+            display: none !important;
         }
-        .question-card {
-            transition: all 0.3s ease-in-out;
+        .no-print {
+            display: none !important;
         }
-        .radio-label {
-            border: 1px solid #D1D5DB;
-            padding: 0.5rem 1rem;
-            border-radius: 9999px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-weight: 500;
+
+        /* Ensure the results section is fully visible and styled for print */
+        #results-section {
+            display: block !important;
+            visibility: visible !important; /* Ensure it's not hidden */
+            position: static !important; /* Override any absolute/fixed positioning */
+            width: 100% !important;
+            height: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+            border: none !important;
+            overflow: visible !important; /* Ensure content is not clipped */
+            background-color: white !important; /* Ensure background is white for printing */
+            color: black !important; /* Ensure text is black for printing */
         }
-        input[type="radio"]:checked + .radio-label {
-            background-color: #1F2937; /* gray-800 */
-            color: #FFFFFF;
-            border-color: #1F2937;
+
+        /* Reset body/html styles for printing */
+        html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            min-height: 100% !important;
+            overflow: visible !important;
         }
-        #message-box {
-            position: fixed;
-            top: -100px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 1rem 2rem;
-            background-color: #EF4444; /* red-500 */
-            color: white;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: top 0.5s ease-in-out;
-            z-index: 100;
+
+        /* Adjustments for print clarity for content within results */
+        #results-section h2,
+        #results-section h3,
+        #results-section p,
+        #results-section div {
+            break-inside: avoid; /* Prevent breaking elements across pages */
         }
-        #message-box.success {
-            background-color: #22C55E; /* green-500 */
-        }
-        @media print {
-            body > *:not(#results-section) {
-                display: none !important;
-            }
-            #results-section {
-                display: block !important;
-                margin-top: 0 !important;
-                box-shadow: none !important;
-                border: none !important;
-                padding: 0 !important;
-            }
-            /* Adjustments for print clarity */
-            .no-print {
-                display: none !important;
-            }
-        }
-    </style>
+    }
+</style>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
@@ -179,8 +205,8 @@
             }
             
             async function sendResultsToHubSpot(payload) {
-                const portalId = 'PASTE_YOUR_PORTAL_ID_HERE';
-                const formGuid = 'PASTE_YOUR_FORM_GUID_HERE';
+                const portalId = '243187425';
+                const formGuid = '1291f298-7513-4822-857b-6633f46699d8';
 
                 if (portalId.startsWith('PASTE_') || formGuid.startsWith('PASTE_')) {
                     console.warn("HubSpot IDs are not configured. Skipping submission.");
