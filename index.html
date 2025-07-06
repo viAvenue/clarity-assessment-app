@@ -37,7 +37,8 @@
         background-color: #EF4444; /* red-500 */
         color: white;
         border-radius: 0.5rem;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 6px rgba
+            (0,0,0,0.1);
         transition: top 0.5s ease-in-out;
         z-index: 100;
     }
@@ -45,37 +46,25 @@
         background-color: #22C55E; /* green-500 */
     }
     @media print {
-        /* Hide everything that should not be printed */
-        body > *:not(#results-section) {
-            display: none !important;
-        }
+        /* Hide only elements specifically marked with 'no-print' */
         .no-print {
             display: none !important;
         }
 
-        /* Ensure the results section is fully visible and styled for print */
+        /* Ensure results section is visible, and other elements not marked with no-print will also print */
         #results-section {
             display: block !important;
-            visibility: visible !important; /* Ensure it's not hidden */
-            position: static !important; /* Override any absolute/fixed positioning */
+            visibility: visible !important;
+            position: static !important;
             width: 100% !important;
             height: auto !important;
             margin: 0 !important;
             padding: 0 !important;
             box-shadow: none !important;
             border: none !important;
-            overflow: visible !important; /* Ensure content is not clipped */
-            background-color: white !important; /* Ensure background is white for printing */
-            color: black !important; /* Ensure text is black for printing */
-        }
-
-        /* Reset body/html styles for printing */
-        html, body {
-            margin: 0 !important;
-            padding: 0 !important;
-            width: 100% !important;
-            min-height: 100% !important;
             overflow: visible !important;
+            background-color: white !important;
+            color: black !important;
         }
 
         /* Adjustments for print clarity for content within results */
@@ -83,7 +72,16 @@
         #results-section h3,
         #results-section p,
         #results-section div {
-            break-inside: avoid; /* Prevent breaking elements across pages */
+            break-inside: avoid;
+        }
+
+        /* Ensure no unwanted margins/padding on body/html for print */
+        html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            min-height: 100% !important;
+            overflow: visible !important;
         }
     }
 </style>
@@ -94,8 +92,7 @@
 
     <div class="container mx-auto max-w-4xl p-4 sm:p-8">
 
-        <section id="assessment-section">
-            <header class="text-center mb-10">
+        <section id="assessment-section" class="no-print"> <header class="text-center mb-10">
                 <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">Clarity Triad Assessment™</h1>
                 <p class="mt-2 text-lg text-gray-600">A rapid self-diagnostic for your Strategy, Operations & Leadership.</p>
             </header>
@@ -120,8 +117,7 @@
         <section id="results-section" class="hidden mt-16 bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200">
             </section>
 
-        <section id="thank-you-section" class="hidden mt-16 text-center">
-            <div class="bg-white p-8 sm:p-12 rounded-xl shadow-lg border border-gray-200">
+        <section id="thank-you-section" class="hidden mt-16 text-center no-print"> <div class="bg-white p-8 sm:p-12 rounded-xl shadow-lg border border-gray-200">
                 <svg class="mx-auto h-16 w-16 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -205,28 +201,48 @@
             }
             
             async function submitReadinessFormToNetlify(payload) {
-                // IMPORTANT: This function now sends data to the Netlify Function 'submit-assessment.js'
-                // It is NOT using Netlify's built-in form handling which requires data-netlify="true" and form-name field.
-                
+                // This function now uses Netlify's built-in form handling, as per your previous working setup.
+                // It requires data-netlify="true" on the form tag and a 'form-name' field.
+                const netlifyFormName = "readiness_form"; // Must match the 'name' attribute of your form in Netlify
+
+                const formData = new FormData();
+                // Append all payload properties to formData
+                for (const key in payload) {
+                    if (payload.hasOwnProperty(key)) {
+                        // For non-string/number values (like objects for individual_scores), stringify them
+                        if (typeof payload[key] === 'object' && payload[key] !== null) {
+                            formData.append(key, JSON.stringify(payload[key]));
+                        } else {
+                            formData.append(key, payload[key]);
+                        }
+                    }
+                }
+                formData.append('form-name', netlifyFormName); // Crucial for Netlify to identify the form
+
                 try {
-                    const response = await fetch("/.netlify/functions/submit-assessment", {
+                    // Submit to the current page path; Netlify's build process will capture it.
+                    const response = await fetch(window.location.pathname, {
                         method: "POST",
-                        headers: { "Content-Type": "application/json" }, // Send as JSON
-                        body: JSON.stringify(payload) // Stringify the payload to JSON
+                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                        body: new URLSearchParams(formData).toString()
                     });
 
-                    if (response.ok) {
-                        console.log("Successfully submitted data to Netlify Function.");
+                    // For Netlify's built-in forms, 'response.ok' from fetch might always be true client-side
+                    // as the browser handles the redirect/submission. Success/failure is typically
+                    // indicated by Netlify's backend or a redirect to a thank-you page.
+                    if (response.ok) { 
+                        console.log("Form submission initiated via Netlify's built-in handling. Netlify will process.");
                         resultsSection.classList.add('hidden');
                         thankYouSection.classList.remove('hidden');
                         window.scrollTo(0, 0);
                     } else {
+                        // This else block might not be reliably hit for Netlify built-in forms
                         const errorText = await response.text(); 
-                        console.error('Error submitting data to Netlify Function:', response.status, response.statusText, errorText);
-                        showMessageBox('There was an error submitting your information. Please try again. Check console for details.', 'error');
+                        console.error('Error submitting form to Netlify:', response.status, response.statusText, errorText);
+                        showMessageBox('There was an error submitting your information. Please try again. (Check console for details)', 'error');
                     }
                 } catch (error) {
-                    console.error('Network error submitting data to Netlify Function:', error);
+                    console.error('Network error submitting form:', error);
                     showMessageBox('Network error. Please check your connection and try again.', 'error');
                 }
             }
@@ -304,7 +320,7 @@
                     return {
                         level: "Strong and Scalable",
                         color: "text-green-600",
-                        meaning: "This area is a strength. You have clear, documented, and consistently followed practices. The team is aligned and performance is high.",
+                        meaning: "This area is a strength. You have clear, documented, and consistently followed practices. The team is aligned and high performance is high.",
                         action: "Maintain and leverage this as a foundation for scaling. Share best practices from this area with other parts of the business."
                     };
                 }
@@ -349,8 +365,7 @@
                             <h3 class="text-2xl font-bold text-gray-900">An Opportunity for Growth</h3>
                             <p class="mt-2 text-gray-700 max-w-2xl mx-auto">Your Ascent Score shows your business is at a critical elevation point—clarity and focus are needed to break through to the next level. Now is the time to address what’s holding you back and set a clear path forward.</p>
                             <p class="mt-4 font-semibold text-gray-800">If you’re ready to take action and accelerate your growth, complete the readiness form below and our team will reach out with your next steps.</p>
-                            <form name="readiness_form" method="POST" id="readiness-form" class="mt-6 space-y-6 max-w-lg mx-auto">
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <form name="readiness_form" method="POST" id="readiness-form" data-netlify="true" class="mt-6 space-y-6 max-w-lg mx-auto"> <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <label for="readiness-firstname" class="block text-sm font-medium text-gray-700 text-left">First Name</label>
                                         <input type="text" id="readiness-firstname" name="firstname" value="${userData.firstname}" required class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-gray-800 focus:border-gray-800">
@@ -450,8 +465,8 @@
                             strategic_score: scoresData.strategic,
                             operational_score: scoresData.operational,
                             leadership_score: scoresData.leadership,
-                            // Ensure submit-assessment.js can handle these if needed
-                            individual_scores: individualQuestionResponses // Pass individual question scores
+                            // Pass individual question scores - will be stringified for form submission
+                            individual_scores: individualQuestionResponses 
                         };
 
                         await submitReadinessFormToNetlify(finalPayload);
